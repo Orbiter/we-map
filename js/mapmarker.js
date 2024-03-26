@@ -14,23 +14,96 @@ var markerIcon = L.icon({
     popupAnchor: [-3, -76] // Point from which the popup should open relative to the iconAnchor
 });
 
+// function which adds a marker to the map
+function addMarker(lat, lng, comment) {
+    var marker = L.marker([lat, lng], {icon: markerIcon});
+    marker.addTo(map);
+    var popupContent = `<span id="editComment">${comment}</span> <button id="editBtn">Edit</button>`;
+    marker.bindPopup(popupContent);//.openPopup();
+
+    // When creating a new marker, attach a click event listener directly to it
+    marker.on('popupopen', function() {
+        var editBtn = document.querySelector('.leaflet-popup #editBtn');
+        if (editBtn) {
+            // Remove previous event listeners that may have been attached
+            editBtn.removeEventListener('click', editComment);
+            // Attach the event listener
+            editBtn.addEventListener('click', editComment);
+        }
+    });
+    marker.on('contextmenu', function() {
+        map.removeLayer(this);
+        
+        // get the current URL and extract any existing Notion data
+        var url = window.location.href;
+        var notionDataIndex = url.indexOf('#');
+        if (notionDataIndex > 0) {
+            // If there is already Notion data in the URL, parse it into an array of triples
+            var notionData = url.substring(notionDataIndex + 1).split(';');
+            var triples = [];
+            for (var i = 0; i < notionData.length; i++) {
+                var ndi = notionData[i];
+                if (ndi.length == 0) continue;
+                var triple = notionData[i].split(',');
+                triples.push([parseFloat(triple[0]), parseFloat(triple[1]), triple[2]]);
+            }
+        } else {
+            // If there is no existing Notion data in the URL, create an empty array
+            var triples = [];
+        }
+        // remove the triple for the marker from the array
+        for (var i = 0; i < triples.length; i++) {
+            if (triples[i][0] == marker.getLatLng().lat && triples[i][1] == marker.getLatLng().lng) {
+                triples.splice(i, 1);
+                break;
+            }
+        }
+        // Construct a new Notion string from the array of triples
+        var notionString = '';
+        for (var i = 0; i < triples.length; i++) {
+            notionString += triples[i][0] + ',' + triples[i][1] + ',' + encodeURIComponent(triples[i][2]) + ';';
+        }
+        // Remove the trailing ampersand from the Notion string
+        if (notionString) {
+            notionString = notionString.slice(0, -1);
+        }
+        // Update the URL with the new Notion data
+        window.history.replaceState(null, null, '#' + notionString);
+    });
+}
+
+// Define the editComment function outside so it has a consistent reference
+function editComment() {
+    var marker = map._popup._source; // Get the marker associated with the current popup
+    var currentComment = marker.getPopup().getContent().match(/[^<>]+(?=<button)/)[0]; // Extract current comment from popup content
+    var newComment = prompt("Enter a new comment for this marker:", currentComment);
+    if (newComment !== null && newComment !== '') {
+        updatePopupContent(marker, newComment);
+    }
+}
+
+function updatePopupContent(marker, comment) {
+    // Ensure the content string properly escapes any user input to avoid XSS vulnerabilities
+    var popupContent = `<span>${comment}</span> <button id="editBtn">Edit</button>`;
+    marker.bindPopup(popupContent).openPopup();
+}
+
 // Add a click event listener to the map
 map.on('click', function(e) {
-    // Create a new marker at the location of the click event
-    var marker = L.marker([e.latlng.lat, e.latlng.lng]).addTo(map);
 
-    // Add a popup to the marker with some text that includes the latitude and longitude coordinates
-    marker.bindPopup('Hello, ' + e.latlng.toString() + '!').openPopup();
+    // Create a new marker at the location of the click event
+    var marker = addMarker(e.latlng.lat, e.latlng.lng, 'wee');
 
     // Get the current URL and extract any existing Notion data
     var url = window.location.href;
-    var notionData = url.substring(url.indexOf('#') + 1);
-
-    // If there is already Notion data in the URL, parse it into an array of triples
-    if (notionData) {
-        notionData = notionData.split(';');
+    var notionDataIndex = url.indexOf('#');
+    if (notionDataIndex > 0) {
+        // If there is already Notion data in the URL, parse it into an array of triples
+        var notionData = url.substring(notionDataIndex + 1).split(';');
         var triples = [];
         for (var i = 0; i < notionData.length; i++) {
+            var ndi = notionData[i];
+            if (ndi.length == 0) continue;
             var triple = notionData[i].split(',');
             triples.push([parseFloat(triple[0]), parseFloat(triple[1]), triple[2]]);
         }
@@ -46,7 +119,6 @@ map.on('click', function(e) {
     } else {
         console.error("Invalid marker coordinates:", e.latlng.lat, e.latlng.lng);
     }
-    //triples.push([e.latlng.lat, e.latlng.lng, '']);
 
     // Construct a new Notion string from the array of triples
     var notionString = '';
@@ -62,7 +134,7 @@ map.on('click', function(e) {
     // Update the URL with the new Notion data
     window.history.replaceState(null, null, '#' + notionString);
 });
- 
+
 // Add a function to load the markers from the URL when the page loads
 function loadMarkers() {
     var url = window.location.href;
@@ -89,14 +161,18 @@ function loadMarkers() {
 
         // Add a marker for each valid triple
         for (var i = 0; i < triples.length; i++) {
-            L.marker([triples[i][0], triples[i][1]], {icon: markerIcon}) // Ensure you're using the custom icon if necessary
-                .addTo(map)
-                .bindPopup('Hello, ' + triples[i][0] + ', ' + triples[i][1] + '! (' + triples[i][2] + ')');
+            var marker = addMarker(triples[i][0], triples[i][1], triples[i][2]);
         }
+
+        // set the view in such a way that all markers are visible
+        var group = new L.featureGroup(triples.map(function(triple) {
+            return L.marker([triple[0], triple[1]]);
+        }));
+        map.fitBounds(group.getBounds());
+
     } else {
         console.log("No valid Notion data in URL");
     }
 }
-
 
 document.addEventListener('DOMContentLoaded', loadMarkers);
