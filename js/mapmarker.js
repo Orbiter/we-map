@@ -14,34 +14,6 @@ var markerIcon = L.icon({
     popupAnchor: [-3, -76] // Point from which the popup should open relative to the iconAnchor
 });
 
-// Add a marker to the map at a specific location
-L.marker([51.505, -0.09], {icon: markerIcon}).addTo(map)
-    .bindPopup('Hello, world!') // Add a popup with some text
-    .openPopup(); // Open the popup automatically
-
-// Define some locations as arrays of latitude and longitude coordinates
-var locations = [
-    [51.505, -0.09], // London
-    [40.7128, -74.0060], // New York City
-    [-33.8688, 151.2093] // Sydney
-];
-
-// Add a loop to create and add markers for each location
-for (var i = 0; i < locations.length; i++) {
-    L.marker(locations[i]).addTo(map)
-        .bindPopup('Hello, ' + locations[i][1] + '!') // Add a popup with some text that includes the longitude coordinate
-        .openPopup(); // Open the popup automatically
-}
-
-// Add a click event listener to the map
-map.on('click', function(e) {
-    // Create a new marker at the location of the click event
-    var marker = L.marker([e.latlng.lat, e.latlng.lng]).addTo(map);
-
-    // Add a popup to the marker with some text that includes the latitude and longitude coordinates
-    marker.bindPopup('Hello, ' + e.latlng.toString() + '!').openPopup();
-});
-
 // Add a click event listener to the map
 map.on('click', function(e) {
     // Create a new marker at the location of the click event
@@ -56,10 +28,10 @@ map.on('click', function(e) {
 
     // If there is already Notion data in the URL, parse it into an array of triples
     if (notionData) {
-        notionData = notionData.split('&');
+        notionData = notionData.split(';');
         var triples = [];
         for (var i = 0; i < notionData.length; i++) {
-            var triple = notionData[i].split('=');
+            var triple = notionData[i].split(',');
             triples.push([parseFloat(triple[0]), parseFloat(triple[1]), triple[2]]);
         }
     } else {
@@ -68,12 +40,18 @@ map.on('click', function(e) {
     }
 
     // Add a new triple to the array for the new marker
-    triples.push([e.latlng.lat, e.latlng.lng, '']);
+    // Before adding the new triple to the array, check if the values are valid numbers
+    if (!isNaN(e.latlng.lat) && !isNaN(e.latlng.lng)) {
+        triples.push([e.latlng.lat, e.latlng.lng, 'wee']); // Assume empty string for the comment if undefined
+    } else {
+        console.error("Invalid marker coordinates:", e.latlng.lat, e.latlng.lng);
+    }
+    //triples.push([e.latlng.lat, e.latlng.lng, '']);
 
     // Construct a new Notion string from the array of triples
     var notionString = '';
     for (var i = 0; i < triples.length; i++) {
-         notionString += triples[i][0] + ',' + triples[i][1] + ',' + encodeURIComponent(triples[i][2]) + '&';
+         notionString += triples[i][0] + ',' + triples[i][1] + ',' + encodeURIComponent(triples[i][2]) + ';';
     }
  
     // Remove the trailing ampersand from the Notion string
@@ -87,24 +65,38 @@ map.on('click', function(e) {
  
 // Add a function to load the markers from the URL when the page loads
 function loadMarkers() {
-    // Get the current URL and extract any existing Notion data
     var url = window.location.href;
     var notionData = url.substring(url.indexOf('#') + 1);
 
-    // If there is Notion data in the URL, parse it into an array of triples
-    if (notionData) {
-        notionData = notionData.split('&');
+    if (notionData && notionData !== "") {
+        var dataPairs = notionData.split(';');
         var triples = [];
-        for (var i = 0; i < notionData.length; i++) {
-            var triple = notionData[i].split('=');
-            triples.push([parseFloat(triple[0]), parseFloat(triple[1]), decodeURIComponent(triple[2])]);
+
+        for (var i = 0; i < dataPairs.length; i++) {
+            var triple = dataPairs[i].split(',');
+            if (triple.length === 3) { // Ensure the triple has exactly 3 parts
+                var lat = parseFloat(triple[0]);
+                var lng = parseFloat(triple[1]);
+                var comment = decodeURIComponent(triple[2]);
+                
+                if (!isNaN(lat) && !isNaN(lng)) { // Check if lat and lng are valid numbers
+                    triples.push([lat, lng, comment]);
+                } else {
+                    console.error("Invalid LatLng values:", triple[0], triple[1]);
+                }
+            }
         }
 
-        // Add a marker for each triple in the array
+        // Add a marker for each valid triple
         for (var i = 0; i < triples.length; i++) {
-            L.marker([triples[i][0], triples[i][1]]).addTo(map)
-                .bindPopup('Hello, ' + triples[i][0] + ', ' + triples[i][1] + '! (' + triples[i][2] + ')') // Add a popup with some text that includes the latitude and longitude coordinates and the comment
-                .openPopup(); // Open the popup automatically
+            L.marker([triples[i][0], triples[i][1]], {icon: markerIcon}) // Ensure you're using the custom icon if necessary
+                .addTo(map)
+                .bindPopup('Hello, ' + triples[i][0] + ', ' + triples[i][1] + '! (' + triples[i][2] + ')');
         }
+    } else {
+        console.log("No valid Notion data in URL");
     }
 }
+
+
+document.addEventListener('DOMContentLoaded', loadMarkers);
