@@ -13,16 +13,20 @@ let markerIcon = L.icon({
     popupAnchor: [-3, -76 * dpr] // Point from which the popup should open relative to the iconAnchor
 });
 
+// Add a tile layer from OpenStreetMap
+let tilehost = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+let tileconfig = {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    tileSize: 512, zoomOffset: -1, // tiles from openstreetmap.org are 256x256 and we fake 512x512 to make them bigger
+    detectRetina: true
+};
 // set the map to retina mode if the device has a higher pixel ratio
 if (window.devicePixelRatio > 1) {
+    tileconfig.hq = L.Browser.retina;
     let mapElement = document.getElementById('map');
     mapElement.classList.add('leaflet-retina');
 }
-
-// Add a tile layer from OpenStreetMap
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-}).addTo(map);
+L.tileLayer(tilehost, tileconfig).addTo(map);
 
 // markers on the map are stored in triples inside the url of the page after the hash
 function readTriples() {
@@ -136,7 +140,7 @@ map.on('click', function(e) {
     // Add a new triple to the array for the new marker
     // Before adding the new triple to the array, check if the values are valid numbers
     if (!isNaN(e.latlng.lat) && !isNaN(e.latlng.lng)) {
-        triples.push([e.latlng.lat, e.latlng.lng, 'wee']); // Assume empty string for the comment if undefined
+        triples.push({lat: e.latlng.lat, lng: e.latlng.lng, comment: 'wee'});
     } else {
         console.error("Invalid marker coordinates:", e.latlng.lat, e.latlng.lng);
     }
@@ -149,16 +153,21 @@ map.on('click', function(e) {
 function loadMarkers() {
     let triples = readTriples();
 
-    // Add a marker for each valid triple
-    for (let i = 0; i < triples.length; i++) {
-        let marker = addMarker(triples[i].lat, triples[i].lng, triples[i].comment);
-    }
+    if (triples.length === 0) {
+        // set bounds to the default view
+        map.setView([51.505, -0.09], 13);
+    } else { 
+        // Add a marker for each valid triple
+        for (let i = 0; i < triples.length; i++) {
+            let marker = addMarker(triples[i].lat, triples[i].lng, triples[i].comment);
+        }
 
-    // set the view in such a way that all markers are visible
-    let group = new L.featureGroup(triples.map(function(triple) {
-        return L.marker([triple.lat, triple.lng]);
-    }));
-    map.fitBounds(group.getBounds());
+        // set the view in such a way that all markers are visible
+        let group = new L.featureGroup(triples.map(function(triple) {
+            return L.marker([triple.lat, triple.lng]);
+        }));
+        map.fitBounds(group.getBounds());
+    }
 }
 
 document.addEventListener('DOMContentLoaded', loadMarkers);
