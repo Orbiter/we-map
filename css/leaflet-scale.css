@@ -1,11 +1,19 @@
 /* Scale controls for high-DPI displays */
 .leaflet-retina .leaflet-control {
-    transform: scale(1.5);
+    transform: scale(2);
     transform-origin: top left;
 }
 
 .leaflet-retina .leaflet-control-attribution, 
 .leaflet-retina .leaflet-control-layers {
-    transform: scale(1.5);
+    transform: scale(2);
     transform-origin: bottom left;
+}
+
+.leaflet-popup-content {
+    font-size: 16px;
+}
+
+.leaflet-popup-custom {
+    max-width: none !important; /* Remove the max-width limit */
 }
