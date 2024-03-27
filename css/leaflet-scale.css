@@ -9,3 +9,16 @@
     transform: scale(1.5);
     transform-origin: bottom left;
 }
+
+.leaflet-retina .leaflet-popup-content {
+    font-size: 32px; /* Larger font size for readability */
+}
+
+.leaflet-retina .leaflet-popup {
+    width: 300px; /* Adjust width as needed */
+}
+
+.leaflet-retina .leaflet-popup-content button {
+    padding: 10px;
+    font-size: 28px; /* Larger buttons for easier interaction */
+}

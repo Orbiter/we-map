@@ -96,7 +96,7 @@ function addMarker(lat, lng, comment) {
 
         // remove the triple for the marker from the array
         for (let i = 0; i < triples.length; i++) {
-            if (triples[i][0] == marker.getLatLng().lat && triples[i][1] == marker.getLatLng().lng) {
+            if (triples[i].lat == marker.getLatLng().lat && triples[i].lng == marker.getLatLng().lng) {
                 triples.splice(i, 1);
                 break;
             }
