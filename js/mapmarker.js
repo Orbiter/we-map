@@ -1,18 +1,29 @@
 // Initialize the map
-var map = L.map('map').setView([51.505, -0.09], 13); // Set the initial view to London
+var map = L.map('map').setView([51.505, -0.09], 13);
+
+// adopt for different screen resolutions
+var dpr = window.devicePixelRatio || 1;
+var markerSize = [40 * dpr, 66 * dpr]; // Adjust base size according to the DPR
+
+// Define a marker icon
+var markerIcon = L.icon({
+    iconUrl: 'img/marker.svg',
+    iconSize: markerSize, // Size of the icon
+    iconAnchor: [markerSize[0] / 2, markerSize[1]], // Point from which the popup should open relative to the iconAnchor
+    popupAnchor: [-3, -76 * dpr] // Point from which the popup should open relative to the iconAnchor
+});
+
+// set the map to retina mode if the device has a higher pixel ratio
+if (window.devicePixelRatio > 1) {
+    var mapElement = document.getElementById('map');
+    mapElement.classList.add('leaflet-retina');
+}
 
 // Add a tile layer from OpenStreetMap
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
 }).addTo(map);
 
-// Define a marker icon
-var markerIcon = L.icon({
-    iconUrl: 'img/marker.svg',
-    iconSize: [25, 41], // Size of the icon
-    iconAnchor: [13, 41], // Point from which the popup should open relative to the iconAnchor
-    popupAnchor: [-3, -76] // Point from which the popup should open relative to the iconAnchor
-});
 
 // function which adds a marker to the map
 function addMarker(lat, lng, comment) {

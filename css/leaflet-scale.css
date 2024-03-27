@@ -1,0 +1,11 @@
+/* Scale controls for high-DPI displays */
+.leaflet-retina .leaflet-control {
+    transform: scale(1.5);
+    transform-origin: top left;
+}
+
+.leaflet-retina .leaflet-control-attribution, 
+.leaflet-retina .leaflet-control-layers {
+    transform: scale(1.5);
+    transform-origin: bottom left;
+}
