@@ -155,11 +155,35 @@ function controlContainer(title, content) {
     return container;
 }
 
+// add a leaflet control to copy the weekmap URL
+L.Control.ShareMarkers = L.Control.extend({
+    onAdd: function(map) {
+        let container = controlContainer('Copy URL of map', 'Share');
+        container.onclick = function() {
+            // get the url of the page as string
+            let url = window.location.href;
+            // copy the url into the clipboard
+            navigator.clipboard.writeText(url).then(function() {
+                alert('URL copied to clipboard - share it with others!');
+            }, function() {
+                alert('Error copying URL to clipboard');
+            });
+        };
+        L.DomEvent.on(container, 'click', function(e) {
+            L.DomEvent.stopPropagation(e); // Prevent click event from propagating to the map
+        });
+        return container;
+    }
+});
+
 // add a leaflet control to the map to reset the markers
 L.Control.ResetMarkers = L.Control.extend({
     onAdd: function(map) {
-        let container = controlContainer('Reset all markers', 'Reset');
+        let container = controlContainer('Clear all markers', 'Clear');
         container.onclick = function() {
+            // open a dialog to confirm the deletion of all markers
+            if (!confirm('Do you really want to delete all markers?')) return;
+            
             // remove all markers from the map
             map.eachLayer(function(layer) {
                 if (layer instanceof L.Marker) map.removeLayer(layer);
@@ -172,7 +196,6 @@ L.Control.ResetMarkers = L.Control.extend({
         return container;
     }
 });
-
 
 // add a leaflet control to the map to export the markers
 L.Control.ExportMarkers = L.Control.extend({
@@ -276,10 +299,12 @@ L.Control.SearchMarkers = L.Control.extend({
     }
 });
 
+L.control.shareMarkers = function(opts) { return new L.Control.ShareMarkers(opts); }
 L.control.resetMarkers = function(opts) { return new L.Control.ResetMarkers(opts); }
 L.control.exportMarkers = function(opts) { return new L.Control.ExportMarkers(opts); }
 L.control.importMarkers = function(opts) { return new L.Control.ImportMarkers(opts); }
 L.control.searchMarkers = function(opts) { return new L.Control.SearchMarkers(opts); }
+L.control.shareMarkers({ position: 'topright' }).addTo(map);
 L.control.resetMarkers({ position: 'topright' }).addTo(map);
 L.control.exportMarkers({ position: 'topright' }).addTo(map);
 L.control.importMarkers({ position: 'topright' }).addTo(map);
