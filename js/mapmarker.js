@@ -141,10 +141,12 @@ function controlContainer(title, content) {
     let container = L.DomUtil.create('div', 'leaflet-control leaflet-bar leaflet-control-custom');
     container.style.pointerEvents = 'auto';
     container.style.backgroundColor = 'white';
-    container.style.backgroundSize = '30px 30px';
-    container.style.width = '30px';
+    container.style.backgroundSize = '70px 30px';
+    container.style.width = '70px';
     container.style.height = '30px';
     container.style.cursor = 'pointer';
+    container.style.marginRight = '85px';
+    container.style.marginBottom = '20px';
     container.textContent = content;
     container.title = title;
     container.style.fontSize = '16px';
@@ -156,7 +158,7 @@ function controlContainer(title, content) {
 // add a leaflet control to the map to reset the markers
 L.Control.ResetMarkers = L.Control.extend({
     onAdd: function(map) {
-        let container = controlContainer('Reset all markers', 'R');
+        let container = controlContainer('Reset all markers', 'Reset');
         container.onclick = function() {
             // remove all markers from the map
             map.eachLayer(function(layer) {
@@ -175,7 +177,7 @@ L.Control.ResetMarkers = L.Control.extend({
 // add a leaflet control to the map to export the markers
 L.Control.ExportMarkers = L.Control.extend({
     onAdd: function(map) {
-        let container = controlContainer('Export all markers', 'E');
+        let container = controlContainer('Export all markers', 'Export');
         L.DomEvent.on(container, 'click', function(e) {
             L.DomEvent.stopPropagation(e); // Prevent click event from propagating to the map
             // construct an export string from the triples
@@ -203,7 +205,7 @@ L.Control.ExportMarkers = L.Control.extend({
 
 L.Control.ImportMarkers = L.Control.extend({
     onAdd: function(map) {
-        let container = controlContainer('Import markers', 'I');
+        let container = controlContainer('Import markers', 'Import');
         L.DomEvent.on(container, 'click', function(e) {
             L.DomEvent.stopPropagation(e); // Prevent click event from propagating to the map
             let input = prompt("Paste the exported marker data here:");
@@ -257,7 +259,7 @@ function parseAndConstructTriples(input) {
 
 L.Control.SearchMarkers = L.Control.extend({
     onAdd: function(map) {
-        let container = controlContainer('Search Locations', '?');
+        let container = controlContainer('Search Locations', 'Search');
         L.DomEvent.on(container, 'click', function(e) {
             L.DomEvent.stopPropagation(e); // Prevent click event from propagating to the map
             let input = prompt("Search for:");
