@@ -151,26 +151,6 @@ function extendTriples(triples, newTriples) {
     return triples;
 }
 
-function searchLocation(query) {
-    let bounds = map.getBounds();
-    let viewbox = `${bounds.getWest()},${bounds.getNorth()},${bounds.getEast()},${bounds.getSouth()}`;
-    let url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&viewbox=${encodeURIComponent(viewbox)}&bounded=1`;
-    triples = [];
-    fetch(url)
-        .then(response => response.json())
-        .then(data => {
-            searchResultsLayer.clearLayers(); // Assuming searchResultsLayer is already defined
-
-            data.forEach(item => {
-                triples.push({lat: item.lat, lng: item.lon, comment: item.display_name});
-                let marker = L.marker([item.lat, item.lon], {icon: searchIcon}).bindPopup(`${item.display_name}`);
-                searchResultsLayer.addLayer(marker);
-            });
-        })
-        .catch(error => console.log('Error:', error));
-    return triples;
-}
-
 function controlContainer(title, content) {
     let container = L.DomUtil.create('div', 'leaflet-control leaflet-bar leaflet-control-custom');
     container.style.pointerEvents = 'auto';
@@ -382,7 +362,7 @@ function parseAndConstructTriples(input) {
         } else if (!line.startsWith('https://') && !line.startsWith('http://') && line.length > 0 && comment.length === 0) {
             // check if line has exactly one comma inside and the two parts are floats
             let parts = line.split(',');
-            if (parts.length === 2 && !isNaN(parseFloat(parts[0].trim())) && !isNaN(parseFloat(parts[01].trim()))) {
+            if (parts.length === 2 && !isNaN(parseFloat(parts[0].trim())) && !isNaN(parseFloat(parts[1].trim()))) {
                 let lat = parseFloat(parts[0].trim());
                 let lng = parseFloat(parts[1].trim());
                 url = `https://www.openstreetmap.org/?mlat=${float6(lat)}&mlon=${float6(lng)}&zoom=15`;
@@ -415,34 +395,44 @@ L.Control.SearchMarkers = L.Control.extend({
         let container = controlContainer('Search Locations', 'Search');
         L.DomEvent.on(container, 'click', function(e) {
             L.DomEvent.stopPropagation(e); // Prevent click event from propagating to the map
-            let input = prompt("Search for:");
-            if (input) {
+            let query = prompt("Search for:");
+            if (query) {
                 try {
-                    let triples = searchLocation(input);
-                    searchResultsLayer.clearLayers();
-                    triples.forEach(triple => {
-                        let marker = L.marker([triple.lat, triple.lng], {icon: searchIcon}).bindPopup(`${triple.comment}`);
-                        searchResultsLayer.addLayer(marker);
+                    let bounds = map.getBounds();
+                    let viewbox = `${bounds.getWest()},${bounds.getNorth()},${bounds.getEast()},${bounds.getSouth()}`;
+                    let searchurl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&viewbox=${encodeURIComponent(viewbox)}&bounded=1`;
+                    fetch(searchurl)
+                        .then(response => response.json())
+                        .then(data => {
+                            searchResultsLayer.clearLayers();
+                            data.forEach(item => {
+                                let newTriple = {lat: parseFloat(item.lat), lng: parseFloat(item.lon), comment: item.display_name};
+                                let marker = L.marker([item.lat, item.lon], {icon: searchIcon}).bindPopup(`${item.display_name}`);
+                                searchResultsLayer.addLayer(marker);
 
-                        // Add a right-click event listener to transform the marker into a normal marker
-                        marker.on('contextmenu', function(e) {
-                            L.DomEvent.preventDefault(e); // Prevent the default right-click behavior
-                            // Remove from search results
-                            searchResultsLayer.removeLayer(marker);
+                                // Add a right-click event listener to transform the marker into a normal marker
+                                marker.on('contextmenu', function(e) {
+                                    //console.log('Right-clicked on search result marker');
+                                    L.DomEvent.preventDefault(e); // Prevent the default right-click behavior
+                                    // Remove from search results
+                                    searchResultsLayer.removeLayer(marker);
 
-                            // Add to the main triples list and update the URL
-                            let newTriple = {lat: e.latlng.lat, lng: e.latlng.lng, comment: triple.comment};
-                            let triples = readTriples(); // Retrieve the current list of triples
-                            triples.push(newTriple); // Add the new triple
-                            writeTriples(triples); // Update the triples list
+                                    // Add to the main triples list and update the URL
+                                    let triples = readTriples(); // Retrieve the current list of triples
+                                    let n = triples.length;
+                                    triples = extendTriples(triples, [newTriple]); // Add the new triple
+                                    writeTriples(triples); // Update the triples list
 
-                            // Add a new normal marker to the map
-                            addMarker(newTriple.lat, newTriple.lng, newTriple.comment);
-
-                            // Optionally, if you keep track of markers in a layer group for non-search markers, add it there too
-                            // normalMarkersLayer.addLayer(normalMarker);
-                        });
+                                    // Add a new normal marker to the map
+                                    if (triples.length > n) addMarker(newTriple.lat, newTriple.lng, newTriple.comment);
+                                });
+                            });
+                        })
+                    .catch(error => {
+                        console.log('Error:', error);
                     });
+
+
                 } catch (error) {
                     alert("Error searching: " + error.message);
                 }
@@ -484,7 +474,7 @@ function addMarker(lat, lng, comment) {
                 let newComment = prompt("Enter a new comment for this marker:", currentCommentText.trim());
                 if (newComment !== null && newComment !== '') {
                     newComment = sanitized(newComment);
-                    marker.getPopup().setContent(`<span>${sanitizedComment}</span>`).update();
+                    marker.getPopup().setContent(`<span>${newComment}</span>`).update();
                     // update the triples array with the new comment
                     let triples = readTriples();
                     for (let i = 0; i < triples.length; i++) {
