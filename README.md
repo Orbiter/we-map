@@ -1,6 +1,11 @@
-# WeeMap
+# WeeMap: A Collaborative and Interactive Mapping Tool
 
-This is a map where you can add markers to remember and share locations. 
+This is a map where you can add markers to remember and share locations.
+
+## How to run this:
+- You can use the online application at https://weemap.org
+- To run a local copy, just clone the repository and open index.html
+- This application does not require a make process and also no server.
 
 ## Functions: 
 - Click on the map to add a location (blue marker). 
@@ -36,6 +41,6 @@ This means there are no accounts or logins.
 - Is this open source? Where can I get the source code?  
   Yes, the source code is available on GitHub: https://github.com/orbiter/weemap
 - Can I contribute or help?  
-  Yes, pull requests are welcome. You are also welcome to subscribe to https://www.patreon.com/orbiterlab
+  Pull requests are welcome. To support development subscribe to https://www.patreon.com/orbiterlab
 
 Have fun!
