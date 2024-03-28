@@ -1,3 +1,22 @@
+/**
+ *  weemap.js - A simple map to remember and share locations
+ *  Copyright 26.03.2024 by Michael Peter Christen, mc@yacy.net
+ *
+ *  This library is free software; you can redistribute it and/or
+ *  modify it under the terms of the GNU Lesser General Public
+ *  License as published by the Free Software Foundation; either
+ *  version 2.1 of the License, or (at your option) any later version.
+ *
+ *  This library is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ *  Lesser General Public License for more details.
+ *
+ *  You should have received a copy of the GNU Lesser General Public License
+ *  along with this program in the file lgpl21.txt
+ *  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 // Initialize the map
 let map = L.map('map').setView([51.505, -0.09], 13);
 map.getContainer().style.cursor = 'pointer';
@@ -171,27 +190,35 @@ function controlContainer(title, content) {
 }
 
 function help() {        
-            // Setup help modal content
+    // Setup help modal content
     document.getElementById('helpModalHeadline').textContent = 'Help Information';
     document.getElementById('helpModalTextarea').value = 
-        'This is a map where you can add markers to remember and share locations. \n\n' +
-        'Functions: \n' + 
-        '- Click on the map to add a marker. \n' +
-        '- Right-click on a marker to remove it. \n' +
-        '- Click on a marker to show its comment. \n' +
-        '- Click on the comment to edit it. \n\n' +
-        'All markers are stored in the URL of the page! \n' +
-        'This means there are no accounts or logins. \n\n' +
-        'You can share the URL with others to collaborate with the markers: \n' +
-        '- Copy the URL with the "Share" button. \n' +
-        '- Export all markers with the "Export" button. \n' +
-        '- Import markers with the "Import" button. The import format is identical to the export format, but you can also import other weemap urls. \n\n' +
-        'You can also search for locations: \n' +
-        '- Click on the "Search" button and enter a location name. \n' +
-        '- Results are only searched within the visible view box. \n' +
-        '- Click on a search result (green locations) to view the location name. \n' +
-        '- To convert a search result marker into a normal marker, right-click on it. \n\n' +
-        'Have fun!';
+    'This is a map where you can add markers to remember and share locations. \n\n' +
+    'Functions: \n' + 
+    '- Click on the map to add a location (blue marker). \n' +
+    '- Right-click on a marker to remove it. \n' +
+    '- Click on a marker to show its comment. \n' +
+    '- Click on the comment to edit it. \n\n' +
+    'All markers are stored in the URL of the page! \n' +
+    'This means there are no accounts or logins. \n\n' +
+    'You can share the URL with others to collaborate with the markers: \n' +
+    '- Copy the URL with the "Share" button. \n' +
+    '- Export all markers with the "Export" button into a text file. \n' +
+    '- Import markers with the "Import" button. The import format is identical to the export format, but you can also import other weemap urls. \n\n' +
+    'You can also search for locations: \n' +
+    '- Click on the "Search" button and enter a location name. \n' +
+    '- Results are only searched within the visible view box! \n' +
+    '- Click on a search result location (green marker) to view the location name. \n' +
+    '- To convert a search result marker (green) into a normal, stored marker (blue), right-click on it. \n\n' +
+    'FAQ: \n' +
+    '- Does weemap.org store any of the location data\n  No, all data is only stored in the URL of the page on your own device. \n' +
+    '- Does weemap.org store any cookies or personal data?\n  No, weemap.org works without cookies. You do not need to have an account to use weemap.org thus we don\'t have any personal data from you. \n' +
+    '- How many locations can be stored in the URL?\n  About 40\n' +
+    '- Does the import function recognize and ignore duplicates?\n  Yes, locations are matched using a similarity metric on the coordinates to avoid duplicates.\n' +
+    '- Can I use the map offline?\n  Yes, if you have visited the map before. All visited tiles are cached in the browser. \n' +
+    '- Is this open source? Where can I get the source code?\n  Yes, the source code is available on GitHub: https://github.com/orbiter/weemap\n' +
+    '- Can I contribute or help?\n  Yes, pull requests are welcome. You are also welcome to subscribe to https://www.patreon.com/orbiterlab\n\n' +
+    'Have fun!';
     document.getElementById('helpModal').style.display = 'block';
 
     // "Close" button action
