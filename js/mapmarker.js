@@ -67,12 +67,15 @@ function float6(value) {
     return parseFloat(value.toFixed(6));
 }
 
+// sanitize strings to remove characters which are not allowed in a URL, in web content or in triples lists
+function sanitized(comment) {
+    return comment.replace(new RegExp('[,;&<>]', 'g'), ' ');
+}
+
 // markers on the map are stored in triples inside the url of the page after the hash
-function readTriples() {
-    const url = window.location.href;
+function readTriplesFromURL(url) {
     const triples = [];
     const notionDataIndex = url.indexOf('#');
-
     if (notionDataIndex > 0) {
         const notionData = url.substring(notionDataIndex + 1).split(';');
         for (const ndi of notionData) {
@@ -88,14 +91,27 @@ function readTriples() {
                 }
             }
         }
-    }
-    
+    }    
     return triples;
+}
+
+function readTriples() {
+    const url = window.location.href;
+    return readTriplesFromURL(url);
 }
 
 function writeTriples(triples) {
     const notionString = triples.map(triple => `${float6(triple.lat)},${float6(triple.lng)},${encodeURIComponent(triple.comment)}`).join(';');
     window.history.replaceState(null, null, `#${notionString}`);
+}
+
+function resetViewbox(triples) {
+    // set the view in such a way that all markers are visible
+    let group = new L.featureGroup(triples.map(function(triple) {
+        return L.marker([triple.lat, triple.lng]);
+    }));
+    map.fitBounds(group.getBounds());
+    if (map.getZoom() > 19) map.setZoom(19);
 }
 
 function extendTriples(triples, newTriples) {
@@ -117,24 +133,23 @@ function extendTriples(triples, newTriples) {
 }
 
 function searchLocation(query) {
-    var bounds = map.getBounds();
-    var viewbox = `${bounds.getWest()},${bounds.getNorth()},${bounds.getEast()},${bounds.getSouth()}`;
-
-    var url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&viewbox=${encodeURIComponent(viewbox)}&bounded=1`;
-
+    let bounds = map.getBounds();
+    let viewbox = `${bounds.getWest()},${bounds.getNorth()},${bounds.getEast()},${bounds.getSouth()}`;
+    let url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&viewbox=${encodeURIComponent(viewbox)}&bounded=1`;
+    triples = [];
     fetch(url)
         .then(response => response.json())
         .then(data => {
             searchResultsLayer.clearLayers(); // Assuming searchResultsLayer is already defined
 
             data.forEach(item => {
-                var marker = L.marker([item.lat, item.lon], {icon: searchIcon})
-                .bindPopup(`${item.display_name}`);
-            searchResultsLayer.addLayer(marker);
+                triples.push({lat: item.lat, lng: item.lon, comment: item.display_name});
+                let marker = L.marker([item.lat, item.lon], {icon: searchIcon}).bindPopup(`${item.display_name}`);
                 searchResultsLayer.addLayer(marker);
             });
         })
         .catch(error => console.log('Error:', error));
+    return triples;
 }
 
 function controlContainer(title, content) {
@@ -155,11 +170,56 @@ function controlContainer(title, content) {
     return container;
 }
 
+function help() {        
+            // Setup help modal content
+    document.getElementById('helpModalHeadline').textContent = 'Help Information';
+    document.getElementById('helpModalTextarea').value = 
+        'This is a map where you can add markers to remember and share locations. \n\n' +
+        'Functions: \n' + 
+        '- Click on the map to add a marker. \n' +
+        '- Right-click on a marker to remove it. \n' +
+        '- Click on a marker to show its comment. \n' +
+        '- Click on the comment to edit it. \n\n' +
+        'All markers are stored in the URL of the page! \n' +
+        'This means there are no accounts or logins. \n\n' +
+        'You can share the URL with others to collaborate with the markers: \n' +
+        '- Copy the URL with the "Share" button. \n' +
+        '- Export all markers with the "Export" button. \n' +
+        '- Import markers with the "Import" button. The import format is identical to the export format, but you can also import other weemap urls. \n\n' +
+        'You can also search for locations: \n' +
+        '- Click on the "Search" button and enter a location name. \n' +
+        '- Results are only searched within the visible view box. \n' +
+        '- Click on a search result (green locations) to view the location name. \n' +
+        '- To convert a search result marker into a normal marker, right-click on it. \n\n' +
+        'Have fun!';
+    document.getElementById('helpModal').style.display = 'block';
+
+    // "Close" button action
+    document.getElementById('helpModalCloseButton').onclick = function() {
+        document.getElementById('helpModal').style.display = 'none';
+    };
+};
+
+// add a leaflet control to show help
+L.Control.Help = L.Control.extend({
+    onAdd: function(map) {
+        let container = controlContainer('WeeMap Help', 'Help');
+        L.DomEvent.on(container, 'click', function(e) {
+            L.DomEvent.stopPropagation(e); // Prevent click event from propagating to the map
+            help();
+        });
+
+        L.DomEvent.disableClickPropagation(container);
+        return container;
+    }
+});
+
 // add a leaflet control to copy the weekmap URL
 L.Control.ShareMarkers = L.Control.extend({
     onAdd: function(map) {
         let container = controlContainer('Copy URL of map', 'Share');
-        container.onclick = function() {
+        L.DomEvent.on(container, 'click', function(e) {
+            L.DomEvent.stopPropagation(e); // Prevent click event from propagating to the map
             // get the url of the page as string
             let url = window.location.href;
             // copy the url into the clipboard
@@ -168,9 +228,6 @@ L.Control.ShareMarkers = L.Control.extend({
             }, function() {
                 alert('Error copying URL to clipboard');
             });
-        };
-        L.DomEvent.on(container, 'click', function(e) {
-            L.DomEvent.stopPropagation(e); // Prevent click event from propagating to the map
         });
         return container;
     }
@@ -180,7 +237,8 @@ L.Control.ShareMarkers = L.Control.extend({
 L.Control.ResetMarkers = L.Control.extend({
     onAdd: function(map) {
         let container = controlContainer('Clear all markers', 'Clear');
-        container.onclick = function() {
+        L.DomEvent.on(container, 'click', function(e) {
+            L.DomEvent.stopPropagation(e); // Prevent click event from propagating to the map
             // open a dialog to confirm the deletion of all markers
             if (!confirm('Do you really want to delete all markers?')) return;
             
@@ -189,9 +247,6 @@ L.Control.ResetMarkers = L.Control.extend({
                 if (layer instanceof L.Marker) map.removeLayer(layer);
             });
             writeTriples([]); // remove the triples from the URL
-        };
-        L.DomEvent.on(container, 'click', function(e) {
-            L.DomEvent.stopPropagation(e); // Prevent click event from propagating to the map
         });
         return container;
     }
@@ -202,24 +257,28 @@ L.Control.ExportMarkers = L.Control.extend({
     onAdd: function(map) {
         let container = controlContainer('Export all markers', 'Export');
         L.DomEvent.on(container, 'click', function(e) {
-            L.DomEvent.stopPropagation(e); // Prevent click event from propagating to the map
+            L.DomEvent.stopPropagation(e);
+
             // construct an export string from the triples
             let triples = readTriples();
             let exportString = triples.map(triple => `${triple.comment}\nhttps://www.openstreetmap.org/?mlat=${float6(triple.lat)}&mlon=${float6(triple.lng)}&zoom=15`).join('\n\n');
-            // get the width and height of the map
-            let mapWidth = map.getSize().x;
-            let mapHeight = map.getSize().y;
-            let content = `<textarea style='width: ${mapWidth * 0.9}px; height: ${mapHeight * 0.9}px;'>${exportString}</textarea>`;
-            // Create and open a popup with the content. Make sure it is placed in such a way that it fits in the middle of the map
-            let popup = L.popup().setLatLng(map.getCenter()).setContent(content).openOn(map);
-            //let popup = L.popup({className: 'leaflet-popup-custom', offset: L.point(0, -mapHeight * 0.45)});
-            map.once('popupopen', function() {
-                let popupElement = document.querySelector('.leaflet-popup-custom .leaflet-popup-content');
-                if (popupElement) {
-                    popupElement.style.maxWidth = "none";
-                    popupElement.parentNode.style.maxWidth = "none";
-                }
-            });
+
+            // Populate the textarea and show the modal
+            document.getElementById('exportModal').style.display = 'block';
+            document.getElementById('exportModalTextarea').value = exportString;
+            document.getElementById('exportModalHeadline').textContent = 'Exported markers, copy the text below:';
+
+            // Copy button functionality
+            document.getElementById('exportModalCopyButton').onclick = function() {
+                document.getElementById('exportModalTextarea').select();
+                document.execCommand('copy');
+            };
+
+            // Close button functionality
+            document.getElementById('exportModalCloseButton').onclick = function() {
+                document.getElementById('exportModal').style.display = 'none';
+            };
+
         });
         L.DomEvent.disableClickPropagation(container);
         return container;
@@ -231,21 +290,48 @@ L.Control.ImportMarkers = L.Control.extend({
         let container = controlContainer('Import markers', 'Import');
         L.DomEvent.on(container, 'click', function(e) {
             L.DomEvent.stopPropagation(e); // Prevent click event from propagating to the map
-            let input = prompt("Paste the exported marker data here:");
-            if (input) {
-                try {
-                    let newTriples = parseAndConstructTriples(input);
-                    let triples = readTriples();
-                    triples = extendTriples(triples, newTriples);
-                    writeTriples(triples);
-                    map.eachLayer(function(layer) {
-                        if (layer instanceof L.Marker) map.removeLayer(layer);
-                    });
-                    triples.forEach(triple => addMarker(triple.lat, triple.lng, triple.comment, map));
-                } catch (error) {
-                    alert("Error parsing input: " + error.message);
+            
+            // Setup modal for import
+            document.getElementById('importModalHeadline').textContent = 'Import Markers';
+            document.getElementById('importModalTextarea').value = ''; // Clear previous content
+            document.getElementById('importModal').style.display = 'block';
+
+            // Setup buttons
+            document.getElementById('importModalImportButton').textContent = 'Import';
+            document.getElementById('importModalAbortButton').textContent = 'Abort';
+
+            // "Paste" button functionality
+            document.getElementById('importModalPasteButton').onclick = async function() {
+                if (navigator.clipboard) {
+                    document.getElementById('importModalTextarea').value = await navigator.clipboard.readText();
                 }
-            }
+            };
+
+            // "Import" button triggers the import process
+            document.getElementById('importModalImportButton').onclick = function() {
+                let input = document.getElementById('importModalTextarea').value;
+                if (input) {
+                    try {
+                        let newTriples = parseAndConstructTriples(input);
+                        let triples = readTriples();
+                        triples = extendTriples(triples, newTriples);
+                        writeTriples(triples);
+                        map.eachLayer(function(layer) {
+                            if (layer instanceof L.Marker) map.removeLayer(layer);
+                        });
+                        triples.forEach(triple => addMarker(triple.lat, triple.lng, triple.comment, map));
+                        resetViewbox(triples);
+                        document.getElementById('importModal').style.display = 'none'; // Close modal on success
+                    } catch (error) {
+                        alert("Error parsing input: " + error.message);
+                    }
+                }
+            };
+
+            // "Abort" button closes the modal without action
+            document.getElementById('importModalAbortButton').onclick = function() {
+                document.getElementById('importModal').style.display = 'none';
+            };
         });
         L.DomEvent.disableClickPropagation(container);
         return container;
@@ -260,25 +346,42 @@ function parseAndConstructTriples(input) {
     let url = '';
     for (let i = 0; i < lines.length; i++) {
         let line = lines[i].trim();
-        if (line.length === 0 && comment.length > 0 && url.length > 0) {
+        if (line.startsWith('https://www.openstreetmap.org') && line.indexOf('?mlat=') > 0 && line.indexOf('&mlon=') > 0) {
+            url = line;
+        } else if (line.indexOf('weemap.org/#') > 0) {
+            // parse the weemap.org URL and extract the triples
+            newTriples = readTriplesFromURL(line);
+            triples = extendTriples(triples, newTriples);
+        } else if (!line.startsWith('https://') && !line.startsWith('http://') && line.length > 0 && comment.length === 0) {
+            // check if line has exactly one comma inside and the two parts are floats
+            let parts = line.split(',');
+            if (parts.length === 2 && !isNaN(parseFloat(parts[0].trim())) && !isNaN(parseFloat(parts[01].trim()))) {
+                let lat = parseFloat(parts[0].trim());
+                let lng = parseFloat(parts[1].trim());
+                url = `https://www.openstreetmap.org/?mlat=${float6(lat)}&mlon=${float6(lng)}&zoom=15`;
+                // check if the next line is not a URL
+                if (i + 1 < lines.length && !lines[i + 1].startsWith('https://') && !lines[i + 1].startsWith('http://')) {
+                    comment = sanitized(lines[i + 1]).trim();
+                    i++;
+                }
+            } else {
+                // this can be the first line in a newline-separated block
+                comment = sanitized(line).trim();
+            }
+        }
+        if (url.length > 0) {
             // add the triple to the triples array
             let urlObject = new URL(url);
             let lat = urlObject.searchParams.get("mlat");
             let lng = urlObject.searchParams.get("mlon");
-            if (lat && lng) {
-                triples.push({lat: parseFloat(lat), lng: parseFloat(lng), comment: comment});
-            }
+            if (comment.length === 0) comment = "wee";
+            triples = extendTriples(triples, [{lat: parseFloat(lat), lng: parseFloat(lng), comment: comment}]);
             comment = '';
             url = '';
-        } else if (line.startsWith('https://www.openstreetmap.org')) {
-            url = line;
-        } else if (!line.startsWith('https://') && !line.startsWith('http://') && comment.length === 0) {
-            comment = line;
         }
     }
     return triples;
 }
-
 
 L.Control.SearchMarkers = L.Control.extend({
     onAdd: function(map) {
@@ -288,22 +391,48 @@ L.Control.SearchMarkers = L.Control.extend({
             let input = prompt("Search for:");
             if (input) {
                 try {
-                    searchLocation(input);
+                    let triples = searchLocation(input);
+                    searchResultsLayer.clearLayers();
+                    triples.forEach(triple => {
+                        let marker = L.marker([triple.lat, triple.lng], {icon: searchIcon}).bindPopup(`${triple.comment}`);
+                        searchResultsLayer.addLayer(marker);
+
+                        // Add a right-click event listener to transform the marker into a normal marker
+                        marker.on('contextmenu', function(e) {
+                            L.DomEvent.preventDefault(e); // Prevent the default right-click behavior
+                            // Remove from search results
+                            searchResultsLayer.removeLayer(marker);
+
+                            // Add to the main triples list and update the URL
+                            let newTriple = {lat: e.latlng.lat, lng: e.latlng.lng, comment: triple.comment};
+                            let triples = readTriples(); // Retrieve the current list of triples
+                            triples.push(newTriple); // Add the new triple
+                            writeTriples(triples); // Update the triples list
+
+                            // Add a new normal marker to the map
+                            addMarker(newTriple.lat, newTriple.lng, newTriple.comment);
+
+                            // Optionally, if you keep track of markers in a layer group for non-search markers, add it there too
+                            // normalMarkersLayer.addLayer(normalMarker);
+                        });
+                    });
                 } catch (error) {
-                    alert("Error parsing input: " + error.message);
+                    alert("Error searching: " + error.message);
                 }
-            }
+            };
         });
         L.DomEvent.disableClickPropagation(container);
         return container;
     }
 });
 
+L.control.help = function(opts) { return new L.Control.Help(opts); }
 L.control.shareMarkers = function(opts) { return new L.Control.ShareMarkers(opts); }
 L.control.resetMarkers = function(opts) { return new L.Control.ResetMarkers(opts); }
 L.control.exportMarkers = function(opts) { return new L.Control.ExportMarkers(opts); }
 L.control.importMarkers = function(opts) { return new L.Control.ImportMarkers(opts); }
 L.control.searchMarkers = function(opts) { return new L.Control.SearchMarkers(opts); }
+L.control.help({ position: 'topright' }).addTo(map);
 L.control.shareMarkers({ position: 'topright' }).addTo(map);
 L.control.resetMarkers({ position: 'topright' }).addTo(map);
 L.control.exportMarkers({ position: 'topright' }).addTo(map);
@@ -327,7 +456,8 @@ function addMarker(lat, lng, comment) {
                 let currentCommentText = popupElement.textContent || popupElement.innerText;
                 let newComment = prompt("Enter a new comment for this marker:", currentCommentText.trim());
                 if (newComment !== null && newComment !== '') {
-                    updatePopupContent(marker, newComment);
+                    newComment = sanitized(newComment);
+                    marker.getPopup().setContent(`<span>${sanitizedComment}</span>`).update();
                     // update the triples array with the new comment
                     let triples = readTriples();
                     for (let i = 0; i < triples.length; i++) {
@@ -365,23 +495,6 @@ function removeMarker(triples, triple) {
     return triples;
 }
 
-// Define the editComment function outside so it has a consistent reference
-function editComment() {
-    let marker = map._popup._source; // Get the marker associated with the current popup
-    let currentComment = marker.getPopup().getContent().match(/[^<>]+(?=<button)/)[0]; // Extract current comment from popup content
-    let newComment = prompt("Enter a new comment for this marker:", currentComment);
-    if (newComment !== null && newComment !== '') {
-        updatePopupContent(marker, newComment);
-    }
-}
-
-function updatePopupContent(marker, comment) {
-    // Ensure the content string properly escapes any user input to avoid XSS vulnerabilities
-    let sanitizedComment = comment.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    let newPopupContent = `<span>${sanitizedComment}</span>`;
-    marker.getPopup().setContent(newPopupContent).update();
-}
-
 // Add a click event listener to the map
 map.on('click', function(e) {
     let lat = parseFloat(float6(e.latlng.lat));
@@ -396,21 +509,16 @@ map.on('click', function(e) {
 // Add a function to load the markers from the URL when the page loads
 function loadMarkers() {
     let triples = readTriples();
-
     if (triples.length === 0) {
         // set bounds to the default view
         map.setView([51.505, -0.09], 13);
+        help();
     } else { 
         // Add a marker for each valid triple
         for (let i = 0; i < triples.length; i++) {
             let marker = addMarker(triples[i].lat, triples[i].lng, triples[i].comment);
         }
-
-        // set the view in such a way that all markers are visible
-        let group = new L.featureGroup(triples.map(function(triple) {
-            return L.marker([triple.lat, triple.lng]);
-        }));
-        map.fitBounds(group.getBounds());
+        resetViewbox(triples);
     }
 }
 
