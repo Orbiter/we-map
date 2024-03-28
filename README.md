@@ -23,19 +23,19 @@ This means there are no accounts or logins.
 - To convert a search result marker (green) into a normal, stored marker (blue), right-click on it. 
 
 ## FAQ: 
-- Does weemap.org store any of the location data
+- Does weemap.org store any of the location data?  
   No, all data is only stored in the URL of the page on your own device. 
-- Does weemap.org store any cookies or personal data?
+- Does weemap.org store any cookies or personal data?  
   No, weemap.org works without cookies. You do not need to have an account to use weemap.org thus we don't have any personal data from you. 
-- How many locations can be stored in the URL?
+- How many locations can be stored in the URL?  
   About 40
-- Does the import function recognize and ignore duplicates?
+- Does the import function recognize and ignore duplicates?  
   Yes, locations are matched using a similarity metric on the coordinates to avoid duplicates.
-- Can I use the map offline?
+- Can I use the map offline?  
   Yes, if you have visited the map before. All visited tiles are cached in the browser. 
-- Is this open source? Where can I get the source code?
+- Is this open source? Where can I get the source code?  
   Yes, the source code is available on GitHub: https://github.com/orbiter/weemap
-- Can I contribute or help?
+- Can I contribute or help?  
   Yes, pull requests are welcome. You are also welcome to subscribe to https://www.patreon.com/orbiterlab
 
 Have fun!

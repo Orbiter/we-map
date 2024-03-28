@@ -191,7 +191,7 @@ function help() {
     '- Click on a search result location (green marker) to view the location name. \n' +
     '- To convert a search result marker (green) into a normal, stored marker (blue), right-click on it. \n\n' +
     'FAQ: \n' +
-    '- Does weemap.org store any of the location data\n  No, all data is only stored in the URL of the page on your own device. \n' +
+    '- Does weemap.org store any of the location data?\n  No, all data is only stored in the URL of the page on your own device. \n' +
     '- Does weemap.org store any cookies or personal data?\n  No, weemap.org works without cookies. You do not need to have an account to use weemap.org thus we don\'t have any personal data from you. \n' +
     '- How many locations can be stored in the URL?\n  About 40\n' +
     '- Does the import function recognize and ignore duplicates?\n  Yes, locations are matched using a similarity metric on the coordinates to avoid duplicates.\n' +
