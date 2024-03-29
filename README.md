@@ -2,8 +2,12 @@
 
 This is a map where you can add markers to remember and share locations.
 
-## How to run this:
+## Examples
 - You can use the online application at https://weemap.org
+- Example map of  [Hongkong attractions inside one link like https://weemap.org/#<lat,lng,comment>;..](https://weemap.org/#22.283611,114.154722,Mid-Levels%20escalator%2C%20SoHo;22.297333,114.1765,K11%20Shopping;22.3875,114.184722,Ten%20Thousand%20Buddhas%20Monastery;22.30589,114.16987,Temple%20Street%20Night%20Market;22.331944,114.190556,Kowloon%20Walled%20City%20Park%20%2B%20Museum;22.287753,114.173619,Star%20Ferry;22.339109,114.204526,sch%C3%B6ner%20Gartenpark;22.277286,114.1615,Sch%C3%B6ner%20Park%202.0;22.287601,114.149632,Hotel;22.248652,114.174384,Ocean%20Park%2C%20Ocean%20Park%20Road%2C%20Wong%20Chuk%20Hang%20San%20Wai%2C%20Southern%20District%2C%20Hong%20Kong%20Island%2C%20Hongkong%2C%20China;22.284763,114.212367,Monster%20Building;22.293605,114.172063,Space%20Museum;22.296566,114.176576,Wing%20On%20Plaza;22.33586,114.163888,Garden%20Hill;22.333792,114.163494,Mei%20Ho%20Hostel%20Museum;22.329757,114.160851,Sham%20Shui%20Po;22.304272,114.169701,Temple%20Street%20Night%20Market;22.297602,114.173645,K11%20Shopping;22.294023,114.175647,Avenue%20of%20Stars%20Light%20Show%208pm;22.276255,114.1456,Victoria%20Park;22.277009,114.158442,I%20recomment%20arriving%20early;22.285924,114.148319,Possession%20Street)  
+![Hongkong attractions](img/weemap_org.png)
+
+## How to run this:
 - To run a local copy, just clone the repository and open index.html
 - This application does not require a make process and also no server.
 
