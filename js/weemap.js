@@ -138,14 +138,15 @@ function extendTriples(triples, newTriples) {
     // we do this doing a check for duplicates
     for (let i = 0; i < newTriples.length; i++) {
         let found = false;
+        let newTriple = {lat: float6(newTriples[i].lat), lng: float6(newTriples[i].lng), comment: sanitized(newTriples[i].comment)}
         for (let j = 0; j < triples.length; j++) {
-            if (triples[j].lat == newTriples[i].lat && triples[j].lng == newTriples[i].lng) {
+            if (triples[j].lat == newTriple.lat && triples[j].lng == newTriple.lng) {
                 found = true;
                 break;
             }
         }
         if (!found) {
-            triples.push(newTriples[i]);
+            triples.push(newTriple);
         }
     }
     return triples;
@@ -406,7 +407,7 @@ L.Control.SearchMarkers = L.Control.extend({
                         .then(data => {
                             searchResultsLayer.clearLayers();
                             data.forEach(item => {
-                                let newTriple = {lat: parseFloat(item.lat), lng: parseFloat(item.lon), comment: item.display_name};
+                                let newTriple = {lat: parseFloat(item.lat), lng: parseFloat(item.lon), comment: sanitized(item.display_name)};
                                 let marker = L.marker([item.lat, item.lon], {icon: searchIcon}).bindPopup(`${item.display_name}`);
                                 searchResultsLayer.addLayer(marker);
 
