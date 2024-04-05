@@ -58,9 +58,10 @@ let tileconfig = {
     //tileSize: 512, zoomOffset: -1, // tiles from openstreetmap.org are 256x256 and we fake 512x512 to make them bigger
     maxZoom: 22,
     detectRetina: true,
-	useCache: true, // use the puchdb as cache for the tiles
+    useCache: true, // use the puchdb as cache for the tiles
+    cacheMaxAge: 604800000, // one week caching
     //useOnlyCache: true, // can be used to test the offline mode
-	crossOrigin: true
+    crossOrigin: true
 };
 // set the map to retina mode if the device has a higher pixel ratio
 if (dpr > 1) {
