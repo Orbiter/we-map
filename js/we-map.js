@@ -1,5 +1,5 @@
 /**
- *  weemap.js - A simple map to remember and share locations
+ *  we-map.js - A simple map to remember and share locations
  *  Copyright 26.03.2024 by Michael Peter Christen, mc@yacy.net
  *
  *  This library is free software; you can redistribute it and/or
@@ -186,19 +186,19 @@ function help() {
     'You can share the URL with others to collaborate with the markers: \n' +
     '- Copy the URL with the "Share" button. \n' +
     '- Export all markers with the "Export" button into a text file. \n' +
-    '- Import markers with the "Import" button. The import format is identical to the export format, but you can also import other weemap urls. \n\n' +
+    '- Import markers with the "Import" button. The import format is identical to the export format, but you can also import other we-map urls. \n\n' +
     'You can also search for locations: \n' +
     '- Click on the "Search" button and enter a location name. \n' +
     '- Results are only searched within the visible view box! \n' +
     '- Click on a search result location (green marker) to view the location name. \n' +
     '- To convert a search result marker (green) into a normal, stored marker (blue), right-click on it. \n\n' +
     'FAQ: \n' +
-    '- Does weemap.org store any of the location data?\n  No, all data is only stored in the URL of the page on your own device. \n' +
-    '- Does weemap.org store any cookies or personal data?\n  No, weemap.org works without cookies. You do not need to have an account to use weemap.org thus we don\'t have any personal data from you. \n' +
+    '- Does we-map.org store any of the location data?\n  No, all data is only stored in the URL of the page on your own device. \n' +
+    '- Does we-map.org store any cookies or personal data?\n  No, we-map.org works without cookies. You do not need to have an account to use we-map.org thus we don\'t have any personal data from you. \n' +
     '- How many locations can be stored in the URL?\n  About 40\n' +
     '- Does the import function recognize and ignore duplicates?\n  Yes, locations are matched using a similarity metric on the coordinates to avoid duplicates.\n' +
     '- Can I use the map offline?\n  Yes, if you have visited the map before. All visited tiles are cached in the browser. \n' +
-    '- Is this open source? Where can I get the source code?\n  Yes, the source code is available on GitHub: https://github.com/orbiter/weemap\n' +
+    '- Is this open source? Where can I get the source code?\n  Yes, the source code is available on GitHub: https://github.com/orbiter/we-map\n' +
     '- Can I contribute or help?\n  Yes, pull requests are welcome. You are also welcome to subscribe to https://www.patreon.com/orbiterlab\n\n' +
     'Have fun!';
     document.getElementById('helpModal').style.display = 'block';
@@ -212,7 +212,7 @@ function help() {
 // add a leaflet control to show help
 L.Control.Help = L.Control.extend({
     onAdd: function(map) {
-        let container = controlContainer('WeeMap Help', 'Help');
+        let container = controlContainer('We-Map Help', 'Help');
         L.DomEvent.on(container, 'click', function(e) {
             L.DomEvent.stopPropagation(e); // Prevent click event from propagating to the map
             help();
@@ -223,7 +223,7 @@ L.Control.Help = L.Control.extend({
     }
 });
 
-// add a leaflet control to copy the weekmap URL
+// add a leaflet control to copy the we-map URL
 L.Control.ShareMarkers = L.Control.extend({
     onAdd: function(map) {
         let container = controlContainer('Copy URL of map', 'Share');
@@ -357,8 +357,8 @@ function parseAndConstructTriples(input) {
         let line = lines[i].trim();
         if (line.startsWith('https://www.openstreetmap.org') && line.indexOf('?mlat=') > 0 && line.indexOf('&mlon=') > 0) {
             url = line;
-        } else if (line.indexOf('weemap.org/#') > 0) {
-            // parse the weemap.org URL and extract the triples
+        } else if (line.indexOf('we-map.org/#') > 0) {
+            // parse the we-map.org URL and extract the triples
             newTriples = readTriplesFromURL(line);
             triples = extendTriples(triples, newTriples);
         } else if (!line.startsWith('https://') && !line.startsWith('http://') && line.length > 0 && comment.length === 0) {
@@ -383,7 +383,7 @@ function parseAndConstructTriples(input) {
             let urlObject = new URL(url);
             let lat = urlObject.searchParams.get("mlat");
             let lng = urlObject.searchParams.get("mlon");
-            if (comment.length === 0) comment = "wee";
+            if (comment.length === 0) comment = "we";
             triples = extendTriples(triples, [{lat: parseFloat(lat), lng: parseFloat(lng), comment: comment}]);
             comment = '';
             url = '';
@@ -518,7 +518,7 @@ function removeMarker(triples, triple) {
 map.on('click', function(e) {
     let lat = parseFloat(float6(e.latlng.lat));
     let lng = parseFloat(float6(e.latlng.lng));
-    let comment = 'wee';
+    let comment = 'we';
     addMarker(lat, lng, comment);
     let triples = readTriples();
     triples.push({lat: lat, lng: lng, comment: comment});
