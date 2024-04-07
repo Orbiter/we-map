@@ -17,6 +17,12 @@
  *  If not, see <http://www.gnu.org/licenses/>.
  */
 
+// redirect to the correct domain
+let originurl = new URL(window.location.href);
+if (originurl.hostname.indexOf('weemap') >= 0) {
+    window.location.href = window.location.href.replace('weemap', 'we-map');
+}
+
 // Initialize the map
 let map = L.map('map').setView([51.505, -0.09], 13);
 map.getContainer().style.cursor = 'pointer';
