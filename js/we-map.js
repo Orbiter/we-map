@@ -89,31 +89,52 @@ if (dpr > 1) {
 L.tileLayer(tilehost, tileconfig).addTo(map);
 
 function float6(value) {
-    // convert the value into a string with at most six digits after the decimal point
+    // Convert the value into a string with at most six digits after the decimal point; this is enough precision for the coordinates.
     return parseFloat(value.toFixed(6));
 }
 
-// sanitize strings to remove characters which are not allowed in a URL, in web content or in triples lists
+// Sanitize strings to remove characters which are not allowed in a URL, in web content or in triples lists.
 function sanitized(comment) {
     return comment.replace(new RegExp('[,;&<>]', 'g'), ' ');
 }
 
-// markers on the map are stored in triples inside the url of the page after the hash
+// Markers on the map are stored in triples inside the url of the page after the hash.
+// This can have two formats:
+// 1. we-map.org/#lat,lng,comment;lat,lng,comment;...
+// 2. we-map.org/#geohash-prefix;geohash-suffix,comment;geohash-suffix,comment;...
 function readTriplesFromURL(url) {
     const triples = [];
     const notionDataIndex = url.indexOf('#');
     if (notionDataIndex > 0) {
         const notionData = url.substring(notionDataIndex + 1).split(';');
-        for (const ndi of notionData) {
-            if (ndi.length === 0) continue;
-            const triple = ndi.split(',');
-            if (triple.length === 3) {
-                const lat = parseFloat(float6(parseFloat(triple[0])));
-                const lng = parseFloat(float6(parseFloat(triple[1])));
-                const comment = decodeURIComponent(triple[2]);
-                // check if this is a correct triple
-                if (!isNaN(lat) && !isNaN(lng)) {
-                    triples.push({lat, lng, comment});
+        // If the first element has a comma inside, it is the first format, otherwise the second format
+        if (notionData[0].indexOf(',') >= 0) {
+            // first format: lat,lng,comment;lat,lng,comment;... triples
+            for (const ndi of notionData) {
+                if (ndi.length === 0) continue;
+                const triple = ndi.split(',');
+                if (triple.length === 3) {
+                    const lat = float6(parseFloat(triple[0]));
+                    const lng = float6(parseFloat(triple[1]));
+                    const comment = decodeURIComponent(triple[2]);
+                    // check if this is a correct triple
+                    if (!isNaN(lat) && !isNaN(lng)) {
+                        triples.push({lat, lng, comment});
+                    }
+                }
+            }
+        } else {
+            // second format: geohash-prefix;geohash-suffix,comment;geohash-suffix,comment;... tuples
+            const geohashPrefix = notionData[0];
+            for (let i = 1; i < notionData.length; i++) {
+                const tuple = notionData[i].split(',');
+                if (tuple.length === 2) {
+                    const geohash = geohashPrefix + tuple[0];
+                    const comment = decodeURIComponent(tuple[1]);
+                    const decoded = decodeGeoHash(geohash);
+                    if (decoded) {
+                        triples.push({lat: float6(decoded.latitude[2]), lng: float6(decoded.longitude[2]), comment});
+                    }
                 }
             }
         }
@@ -127,7 +148,26 @@ function readTriples() {
 }
 
 function writeTriples(triples) {
-    const notionString = triples.map(triple => `${float6(triple.lat)},${float6(triple.lng)},${encodeURIComponent(triple.comment)}`).join(';');
+    // Depending on the number of triples we use different formats to store the triples in the URL:
+    // Less or equal than 8 triples: we-map.org/#lat,lng,comment;lat,lng,comment;...
+    // More than 6 Triples: we-map.org/#geohash-prefix;geohash-suffix,comment;geohash-suffix,comment;...
+    if (triples.length <= 6) {
+        notionString = triples.map(triple => `${float6(triple.lat)},${float6(triple.lng)},${encodeURIComponent(triple.comment)}`).join(';');
+    } else {
+        // first we calculate all geohashes before we identify the common prefix
+        geohashes = triples.map(triple => encodeGeoHash(float6(triple.lat), float6(triple.lng)));
+        // we also strip off the last two characters of the geohashes because that is enough precision
+        geohashes = geohashes.map(geohash => geohash.substring(0, geohash.length - 2));
+        // then we find the common prefix
+        let commonPrefix = geohashes[0].substring(0, 6);
+        for (let i = 1; i < geohashes.length; i++) {
+            let j = 0;
+            while (j < commonPrefix.length && commonPrefix[j] === geohashes[i][j]) j++;
+            commonPrefix = commonPrefix.substring(0, j);
+        }
+        // now we can store the triples with the common prefix and the suffixes
+        notionString = `${commonPrefix};${geohashes.map((geohash, i) => `${geohash.substring(commonPrefix.length)},${encodeURIComponent(triples[i].comment)}`).join(';')}`;
+    }
     window.history.replaceState(null, null, `#${notionString}`);
 }
 
@@ -146,8 +186,12 @@ function extendTriples(triples, newTriples) {
     for (let i = 0; i < newTriples.length; i++) {
         let found = false;
         let newTriple = {lat: float6(newTriples[i].lat), lng: float6(newTriples[i].lng), comment: sanitized(newTriples[i].comment)}
+        // check if the triple is already in the list
         for (let j = 0; j < triples.length; j++) {
-            if (triples[j].lat == newTriple.lat && triples[j].lng == newTriple.lng) {
+            // Perform fuzzy matching to check for similarity in coordinates
+            let latDiff = Math.abs(triples[j].lat - newTriple.lat);
+            let lngDiff = Math.abs(triples[j].lng - newTriple.lng);
+            if (latDiff <= 0.000001 && lngDiff <= 0.000001) {
                 found = true;
                 break;
             }
@@ -501,7 +545,7 @@ function addMarker(lat, lng, comment) {
     marker.on('contextmenu', function() {
         // remove the triple from the triples array
         let triples = readTriples();
-        triples = removeMarker(triples, {lat: marker.getLatLng().lat, lng: marker.getLatLng().lng, comment: ''});
+        triples = removeMarker(triples, {lat: float6(marker.getLatLng().lat), lng: float6(marker.getLatLng().lng), comment: ''});
         writeTriples(triples);
 
         // remove the layer from the map
@@ -512,7 +556,10 @@ function addMarker(lat, lng, comment) {
 // function which removes a triple from the triples array
 function removeMarker(triples, triple) {
     for (let i = 0; i < triples.length; i++) {
-        if (triples[i].lat == triple.lat && triples[i].lng == triple.lng) {
+        // Perform fuzzy matching to check for similarity in coordinates
+        let latDiff = Math.abs(triples[i].lat - triple.lat);
+        let lngDiff = Math.abs(triples[i].lng - triple.lng);
+        if (latDiff <= 0.000001 && lngDiff <= 0.000001) {
             triples.splice(i, 1);
             break;
         }
