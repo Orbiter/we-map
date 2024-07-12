@@ -17,7 +17,7 @@ const markerTokens = [
     "Observatory", "Office", "Oper", "Outlet", "Overpass",
     "Palace", "Plaza", "Port",
     "Restaurant", "River", "Road", "Ruins",
-    "Sanctuary", "Schloß", "Skigebiet", "Square", "Street", "Synagogue",
+    "Sanctuary", "Schloß", "Shopping", "Skigebiet", "Square", "Street", "Synagogue",
     "Taxi", "Terminal", "Theater", "Tower", "Trail", "Tunnel",
     "University", "Urban",
     "Valley", "Venue", "Village", "Vulkan",
