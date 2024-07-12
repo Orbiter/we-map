@@ -152,7 +152,7 @@ function writeTriples(triples) {
     // Less or equal than 8 triples: we-map.org/#lat,lng,comment;lat,lng,comment;...
     // More than 6 Triples: we-map.org/#geohash-prefix;geohash-suffix,comment;geohash-suffix,comment;...
     if (triples.length <= 6) {
-        notionString = triples.map(triple => `${float6(triple.lat)},${float6(triple.lng)},${encodeURIComponent(encodeMarker(triple.comment))}`).join(';');
+        notionString = triples.map(triple => `${float6(triple.lat)},${float6(triple.lng)},${encodeURIComponent(encodeOnlySpace(triple.comment))}`).join(';');
     } else {
         // first we calculate all geohashes before we identify the common prefix
         geohashes = triples.map(triple => encodeGeoHash(float6(triple.lat), float6(triple.lng)));

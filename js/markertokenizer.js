@@ -26,6 +26,12 @@ const markerTokens = [
     "Yacht", "Youth",
 ]
 
+function encodeOnlySpace(marker) {
+    // replace all spaces with underscores because they will have a shorter URLEncoding
+    let encoded = marker.replace(/ /g, "_");
+    return encoded;
+}
+
 function encodeMarker(marker) {
     // first replace all spaces with underscores because they will have a shorter URLEncoding
     let encoded = marker.replace(/ /g, "_");
